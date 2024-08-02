@@ -12,7 +12,7 @@ module.exports = function serveQuarantineFiles () {
     const basePath = path.resolve('ftp/quarantine/')
     const resolvedPath = path.resolve(basePath, file)
 
-    if (resolvedPath.startsWith(basePath)) {
+    if (resolvedPath.startsWith(basePath) && path.join(basePath, file) === resolvedPath) {
       res.sendFile(resolvedPath)
     } else {
       res.status(403)
