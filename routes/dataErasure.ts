@@ -11,6 +11,7 @@ import { PrivacyRequestModel } from '../models/privacyRequests'
 import { challenges } from '../data/datacache'
 const insecurity = require('../lib/insecurity')
 
+const sanitizeFilename = require('sanitize-filename')
 const challengeUtils = require('../lib/challengeUtils')
 const router = express.Router()
 
@@ -66,7 +67,8 @@ router.post('/', async (req: Request<Record<string, unknown>, Record<string, unk
 
     res.clearCookie('token')
     if (req.body.layout) {
-      const filePath: string = path.resolve(req.body.layout).toLowerCase()
+      const sanitizedLayout = sanitizeFilename(req.body.layout)
+      const filePath: string = path.resolve(sanitizedLayout).toLowerCase()
       const isForbiddenFile: boolean = (filePath.includes('ftp') || filePath.includes('ctf.key') || filePath.includes('encryptionkeys'))
       if (!isForbiddenFile) {
         res.render('dataErasureResult', {

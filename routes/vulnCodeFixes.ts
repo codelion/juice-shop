@@ -4,6 +4,8 @@ import * as accuracy from '../lib/accuracy'
 const challengeUtils = require('../lib/challengeUtils')
 const fs = require('fs')
 const yaml = require('js-yaml')
+const path = require('path')
+const sanitizeFilename = require('sanitize-filename')
 
 const FixesDir = 'data/static/codefixes'
 
@@ -17,6 +19,7 @@ type cache = Record<string, codeFix>
 const CodeFixes: cache = {}
 
 export const readFixes = (key: string) => {
+  key = sanitizeFilename(key)
   if (CodeFixes[key]) {
     return CodeFixes[key]
   }
@@ -25,13 +28,16 @@ export const readFixes = (key: string) => {
   let correct: number = -1
   for (const file of files) {
     if (file.startsWith(`${key}_`)) {
-      const fix = fs.readFileSync(`${FixesDir}/${file}`).toString()
-      const metadata = file.split('_')
-      const number = metadata[1]
-      fixes.push(fix)
-      if (metadata.length === 3) {
-        correct = parseInt(number, 10)
-        correct--
+      const filePath = path.join(FixesDir, file)
+      if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        const fix = fs.readFileSync(filePath).toString()
+        const metadata = file.split('_')
+        const number = metadata[1]
+        fixes.push(fix)
+        if (metadata.length === 3) {
+          correct = parseInt(number, 10)
+          correct--
+        }
       }
     }
   }
@@ -53,7 +59,7 @@ interface VerdictRequestBody {
 }
 
 export const serveCodeFixes = () => (req: Request<FixesRequestParams, Record<string, unknown>, Record<string, unknown>>, res: Response, next: NextFunction) => {
-  const key = req.params.key
+  const key = sanitizeFilename(req.params.key)
   const fixData = readFixes(key)
   if (fixData.fixes.length === 0) {
     res.status(404).json({
@@ -67,7 +73,7 @@ export const serveCodeFixes = () => (req: Request<FixesRequestParams, Record<str
 }
 
 export const checkCorrectFix = () => async (req: Request<Record<string, unknown>, Record<string, unknown>, VerdictRequestBody>, res: Response, next: NextFunction) => {
-  const key = req.body.key
+  const key = sanitizeFilename(req.body.key)
   const selectedFix = req.body.selectedFix
   const fixData = readFixes(key)
   if (fixData.fixes.length === 0) {
@@ -76,8 +82,9 @@ export const checkCorrectFix = () => async (req: Request<Record<string, unknown>
     })
   } else {
     let explanation
-    if (fs.existsSync('./data/static/codefixes/' + key + '.info.yml')) {
-      const codingChallengeInfos = yaml.load(fs.readFileSync('./data/static/codefixes/' + key + '.info.yml', 'utf8'))
+    const infoFilePath = path.join(FixesDir, key + '.info.yml')
+    if (fs.existsSync(infoFilePath)) {
+      const codingChallengeInfos = yaml.load(fs.readFileSync(infoFilePath, 'utf8'))
       const selectedFixInfo = codingChallengeInfos?.fixes.find(({ id }: { id: number }) => id === selectedFix + 1)
       if (selectedFixInfo?.explanation) explanation = res.__(selectedFixInfo.explanation)
     }

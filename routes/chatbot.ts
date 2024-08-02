@@ -155,12 +155,14 @@ async function setUserName (user: User, req: Request, res: Response) {
   }
 }
 
+import DOMPurify from 'dompurify'
+
 export const status = function status () {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (bot == null) {
       res.status(200).json({
         status: false,
-        body: `${config.get<string>('application.chatBot.name')} isn't ready at the moment, please wait while I set things up`
+        body: DOMPurify.sanitize(`${config.get<string>('application.chatBot.name')} isn't ready at the moment, please wait while I set things up`)
       })
       return
     }
@@ -168,7 +170,7 @@ export const status = function status () {
     if (!token) {
       res.status(200).json({
         status: bot.training.state,
-        body: `Hi, I can't recognize you. Sign in to talk to ${config.get<string>('application.chatBot.name')}`
+        body: DOMPurify.sanitize(`Hi, I can't recognize you. Sign in to talk to ${config.get<string>('application.chatBot.name')}`)
       })
       return
     }
@@ -186,7 +188,7 @@ export const status = function status () {
     if (!username) {
       res.status(200).json({
         action: 'namequery',
-        body: 'I\'m sorry I didn\'t get your name. What shall I call you?'
+        body: DOMPurify.sanitize('I\'m sorry I didn\'t get your name. What shall I call you?')
       })
       return
     }
@@ -195,7 +197,7 @@ export const status = function status () {
       bot.addUser(`${user.id}`, username)
       res.status(200).json({
         status: bot.training.state,
-        body: bot.training.state ? bot.greet(`${user.id}`) : `${config.get<string>('application.chatBot.name')} isn't ready at the moment, please wait while I set things up`
+        body: DOMPurify.sanitize(bot.training.state ? bot.greet(`${user.id}`) : `${config.get<string>('application.chatBot.name')} isn't ready at the moment, please wait while I set things up`)
       })
     } catch (err) {
       next(new Error('Blocked illegal activity by ' + req.socket.remoteAddress))

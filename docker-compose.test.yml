@@ -7,3 +7,6 @@ services:
   app:
     image: bkimminich/juice-shop:latest-amd64
     build: ./
+    security_opt:
+      - no-new-privileges:true
+    read_only: true

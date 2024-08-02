@@ -7,6 +7,7 @@ import fs = require('fs')
 import { type Request, type Response, type NextFunction } from 'express'
 import { UserModel } from '../models/user'
 import logger from '../lib/logger'
+import path from 'path'
 
 import * as utils from '../lib/utils'
 const security = require('../lib/insecurity')
@@ -25,7 +26,13 @@ module.exports = function fileUpload () {
       if (uploadedFileType !== null && utils.startsWith(uploadedFileType.mime, 'image')) {
         const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
         if (loggedInUser) {
-          fs.open(`frontend/dist/frontend/assets/public/images/uploads/${loggedInUser.data.id}.${uploadedFileType.ext}`, 'w', function (err, fd) {
+          const uploadDir = path.resolve('frontend/dist/frontend/assets/public/images/uploads')
+          const safeFilePath = path.join(uploadDir, `${loggedInUser.data.id}.${uploadedFileType.ext}`)
+          if (!safeFilePath.startsWith(uploadDir)) {
+            next(new Error('Blocked illegal file path traversal attempt'))
+            return
+          }
+          fs.open(safeFilePath, 'w', function (err, fd) {
             if (err != null) logger.warn('Error opening file: ' + err.message)
             // @ts-expect-error FIXME buffer has unexpected type
             fs.write(fd, buffer, 0, buffer.length, null, function (err) {
@@ -52,3 +59,4 @@ module.exports = function fileUpload () {
     }
   }
 }
+

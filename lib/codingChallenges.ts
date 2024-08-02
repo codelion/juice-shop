@@ -15,27 +15,41 @@ interface CachedCodeChallenge {
   neutralLines: number[]
 }
 
+import path from 'path';
+import fs from 'fs/promises';
+import logger from './logger'; // Assuming there's a logger module.
+
+const isValidPath = (inputPath) => {
+  const resolvedPath = path.resolve(inputPath);
+  return resolvedPath.startsWith(process.cwd()) && !resolvedPath.includes('..');
+};
+
 export const findFilesWithCodeChallenges = async (paths: readonly string[]): Promise<FileMatch[]> => {
   const matches = []
   for (const currPath of paths) {
-    if ((await fs.lstat(currPath)).isDirectory()) {
-      const files = await fs.readdir(currPath)
+    const checkedPath = path.join(process.cwd(), currPath);
+    if (!isValidPath(checkedPath)) {
+      logger.warn(`Invalid path detected: ${currPath}`);
+      continue;
+    }
+    if ((await fs.lstat(checkedPath)).isDirectory()) {
+      const files = await fs.readdir(checkedPath)
       const moreMatches = await findFilesWithCodeChallenges(
-        files.map(file => path.resolve(currPath, file))
+        files.map(file => path.resolve(checkedPath, file))
       )
       matches.push(...moreMatches)
     } else {
       try {
-        const code = await fs.readFile(currPath, 'utf8')
+        const code = await fs.readFile(checkedPath, 'utf8')
         if (
           // strings are split so that it doesn't find itself...
           code.includes('// vuln-code' + '-snippet start') ||
           code.includes('# vuln-code' + '-snippet start')
         ) {
-          matches.push({ path: currPath, content: code })
+          matches.push({ path: checkedPath, content: code })
         }
       } catch (e) {
-        logger.warn(`File ${currPath} could not be read. it might have been moved or deleted. If coding challenges are contained in the file, they will not be available.`)
+        logger.warn(`File ${checkedPath} could not be read. it might have been moved or deleted. If coding challenges are contained in the file, they will not be available.`)
       }
     }
   }
@@ -56,10 +70,15 @@ function getCodeChallengesFromFile (file: FileMatch) {
 }
 
 function getCodingChallengeFromFileContent (source: string, challengeKey: string) {
-  const snippets = source.match(`[/#]{0,2} vuln-code-snippet start.*${challengeKey}([^])*vuln-code-snippet end.*${challengeKey}`)
+  if (!/^[a-zA-Z0-9_-]+$/.test(challengeKey)) {
+    throw new Error('Invalid challengeKey format');
+  }
+  
+  const snippets = source.match(new RegExp(`[/#]{0,2} vuln-code-snippet start.*${challengeKey}([^])*vuln-code-snippet end.*${challengeKey}`))
   if (snippets == null) {
     throw new BrokenBoundary('Broken code snippet boundaries for: ' + challengeKey)
   }
+  
   let snippet = snippets[0] // TODO Currently only a single code snippet is supported
   snippet = snippet.replace(/\s?[/#]{0,2} vuln-code-snippet start.*[\r\n]{0,2}/g, '')
   snippet = snippet.replace(/\s?[/#]{0,2} vuln-code-snippet end.*/g, '')

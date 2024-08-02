@@ -3,8 +3,13 @@ import { readFile } from 'fs/promises'
 import { safeLoad } from 'js-yaml'
 import logger from '../lib/logger'
 
+function sanitizeFileName(fileName: string): string {
+  return fileName.replace(/[^a-z0-9.]/gi, '_').toLowerCase()
+}
+
 export async function loadStaticData (file: string) {
-  const filePath = path.resolve('./data/static/' + file + '.yml')
+  const sanitizedFile = sanitizeFileName(file)
+  const filePath = path.resolve('./data/static/' + sanitizedFile + '.yml')
   return await readFile(filePath, 'utf8')
     .then(safeLoad)
     .catch(() => logger.error('Could not open file: "' + filePath + '"'))
@@ -91,3 +96,4 @@ export interface StaticSecurityQuestions {
 export async function loadStaticSecurityQuestionsData (): Promise<StaticSecurityQuestions[]> {
   return await loadStaticData('securityQuestions') as StaticSecurityQuestions[]
 }
+
