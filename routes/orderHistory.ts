@@ -16,7 +16,8 @@ module.exports.orderHistory = function orderHistory () {
       const email = loggedInUser.data.email
       const updatedEmail = email.replace(/[aeiou]/gi, '*')
       const sanitizedEmail = sanitize(updatedEmail)
-      const order = await ordersCollection.find({ email: sanitizedEmail })
+      const sanitizedQuery = { email: sanitizedEmail }
+      const order = await ordersCollection.find(sanitizedQuery)
       res.status(200).json({ status: 'success', data: order })
     } else {
       next(new Error('Blocked illegal activity by ' + req.socket.remoteAddress))
