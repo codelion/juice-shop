@@ -12,10 +12,18 @@ import * as utils from '../lib/utils'
 const security = require('../lib/insecurity')
 const request = require('request')
 
+const ALLOWED_DOMAINS = ['example.com', 'trusted.com']
+
 module.exports = function profileImageUrlUpload () {
   return (req: Request, res: Response, next: NextFunction) => {
     if (req.body.imageUrl !== undefined) {
       const url = req.body.imageUrl
+      const domain = (new URL(url)).hostname
+
+      if (!ALLOWED_DOMAINS.includes(domain)) {
+        return next(new Error('Blocked illegal activity by ' + req.socket.remoteAddress))
+      }
+
       if (url.match(/(.)*solve\/challenges\/server-side(.)*/) !== null) req.app.locals.abused_ssrf_bug = true
       const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
       if (loggedInUser) {
@@ -28,7 +36,11 @@ module.exports = function profileImageUrlUpload () {
           .on('response', function (res: Response) {
             if (res.statusCode === 200) {
               const ext = ['jpg', 'jpeg', 'png', 'svg', 'gif'].includes(url.split('.').slice(-1)[0].toLowerCase()) ? url.split('.').slice(-1)[0].toLowerCase() : 'jpg'
-              imageRequest.pipe(fs.createWriteStream(`frontend/dist/frontend/assets/public/images/uploads/${loggedInUser.data.id}.${ext}`))
+              const safeFilePath = `frontend/dist/frontend/assets/public/images/uploads/${loggedInUser.data.id}.${ext}`
+              if (safeFilePath.includes('..') || safeFilePath.includes('~')) {
+                return next(new Error('Blocked illegal activity by ' + req.socket.remoteAddress))
+              }
+              imageRequest.pipe(fs.createWriteStream(safeFilePath))
               UserModel.findByPk(loggedInUser.data.id).then(async (user: UserModel | null) => { return await user?.update({ profileImage: `/assets/public/images/uploads/${loggedInUser.data.id}.${ext}` }) }).catch((error: Error) => { next(error) })
             } else UserModel.findByPk(loggedInUser.data.id).then(async (user: UserModel | null) => { return await user?.update({ profileImage: url }) }).catch((error: Error) => { next(error) })
           })
@@ -40,3 +52,4 @@ module.exports = function profileImageUrlUpload () {
     res.redirect(process.env.BASE_PATH + '/profile')
   }
 }
+
