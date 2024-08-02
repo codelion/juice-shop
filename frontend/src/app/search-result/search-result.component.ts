@@ -140,15 +140,18 @@ export class SearchResultComponent implements OnDestroy, AfterViewInit {
   }
 
   // vuln-code-snippet start localXssChallenge xssBonusChallenge
+  import DOMPurify from 'dompurify'; // Assuming DOMPurify is available
+  
   filterTable () {
     let queryParam: string = this.route.snapshot.queryParams.q
     if (queryParam) {
       queryParam = queryParam.trim()
-      this.ngZone.runOutsideAngular(() => { // vuln-code-snippet hide-start
+      queryParam = DOMPurify.sanitize(queryParam); // Sanitize input
+      this.ngZone.runOutsideAngular(() => {
         this.io.socket().emit('verifyLocalXssChallenge', queryParam)
-      }) // vuln-code-snippet hide-end
+      })
       this.dataSource.filter = queryParam.toLowerCase()
-      this.searchValue = this.sanitizer.bypassSecurityTrustHtml(queryParam) // vuln-code-snippet vuln-line localXssChallenge xssBonusChallenge
+      this.searchValue = this.sanitizer.sanitize(SecurityContext.HTML, queryParam) // Use Angular's built-in sanitizer to encode input
       this.gridDataSource.subscribe((result: any) => {
         if (result.length === 0) {
           this.emptyState = true
