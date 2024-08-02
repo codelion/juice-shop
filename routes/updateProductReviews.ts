@@ -9,13 +9,23 @@ import * as db from '../data/mongodb'
 import { challenges } from '../data/datacache'
 
 const security = require('../lib/insecurity')
+const mongodb = require('mongodb')
 
 // vuln-code-snippet start noSqlReviewsChallenge forgedReviewChallenge
 module.exports = function productReviews () {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = security.authenticatedUsers.from(req) // vuln-code-snippet vuln-line forgedReviewChallenge
+    
+    let sanitizedId;
+    try {
+      sanitizedId = new mongodb.ObjectID(req.body.id);
+    } catch (err) {
+      res.status(400).json({ error: 'Invalid ID format' });
+      return;
+    }
+
     db.reviewsCollection.update( // vuln-code-snippet neutral-line forgedReviewChallenge
-      { _id: req.body.id }, // vuln-code-snippet vuln-line noSqlReviewsChallenge forgedReviewChallenge
+      { _id: sanitizedId }, // vuln-code-snippet vuln-line noSqlReviewsChallenge forgedReviewChallenge
       { $set: { message: req.body.message } },
       { multi: true } // vuln-code-snippet vuln-line noSqlReviewsChallenge
     ).then(
@@ -29,3 +39,4 @@ module.exports = function productReviews () {
   }
 }
 // vuln-code-snippet end noSqlReviewsChallenge forgedReviewChallenge
+
