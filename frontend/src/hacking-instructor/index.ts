@@ -104,7 +104,7 @@ function loadHint (hint: ChallengeHint): HTMLElement {
 
   const textBox = document.createElement('span')
   textBox.style.flexGrow = '2'
-  textBox.innerHTML = snarkdown(hint.text)
+  textBox.textContent = snarkdown(hint.text)
 
   const cancelButton = document.createElement('button')
   cancelButton.id = 'cancelButton'
@@ -112,7 +112,7 @@ function loadHint (hint: ChallengeHint): HTMLElement {
   cancelButton.style.backgroundColor = 'transparent'
   cancelButton.style.border = 'none'
   cancelButton.style.color = 'white'
-  cancelButton.innerHTML = '<div style;">&times;</div>'
+  cancelButton.textContent = '×'
   cancelButton.style.fontSize = 'large'
   cancelButton.title = 'Cancel the tutorial'
   cancelButton.style.position = 'relative'
