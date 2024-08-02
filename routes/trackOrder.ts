@@ -14,11 +14,12 @@ module.exports = function trackOrder () {
     const id = !utils.isChallengeEnabled(challenges.reflectedXssChallenge) ? String(req.params.id).replace(/[^\w-]+/g, '') : req.params.id
 
     challengeUtils.solveIf(challenges.reflectedXssChallenge, () => { return utils.contains(id, '<iframe src="javascript:alert(`xss`)">') })
-    db.ordersCollection.find({ orderId: id }).then((order: any) => {
+    const sanitizedId = id.replace(/[^\w-]+/g, '')
+    db.ordersCollection.find({ orderId: sanitizedId }).then((order: any) => {
       const result = utils.queryResultToJson(order)
       challengeUtils.solveIf(challenges.noSqlOrdersChallenge, () => { return result.data.length > 1 })
       if (result.data[0] === undefined) {
-        result.data[0] = { orderId: id }
+        result.data[0] = { orderId: sanitizedId }
       }
       res.json(result)
     }, () => {
