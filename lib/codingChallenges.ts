@@ -15,13 +15,27 @@ interface CachedCodeChallenge {
   neutralLines: number[]
 }
 
+import path from 'path'
+import fs from 'fs/promises'
+import { FileMatch } from './types'
+import logger from './logger'
+
+const isValidPath = (inputPath) => {
+  const resolvedPath = path.resolve(inputPath)
+  return resolvedPath.startsWith(path.resolve(process.cwd()))
+}
+
 export const findFilesWithCodeChallenges = async (paths: readonly string[]): Promise<FileMatch[]> => {
   const matches = []
   for (const currPath of paths) {
+    if (!isValidPath(currPath)) {
+      logger.warn(`Invalid path detected: ${currPath}`)
+      continue
+    }
     if ((await fs.lstat(currPath)).isDirectory()) {
       const files = await fs.readdir(currPath)
       const moreMatches = await findFilesWithCodeChallenges(
-        files.map(file => path.resolve(currPath, file))
+        files.map(file => path.resolve(currPath, file)).filter(isValidPath)
       )
       matches.push(...moreMatches)
     } else {
@@ -56,7 +70,7 @@ function getCodeChallengesFromFile (file: FileMatch) {
 }
 
 function getCodingChallengeFromFileContent (source: string, challengeKey: string) {
-  const snippets = source.match(`[/#]{0,2} vuln-code-snippet start.*${challengeKey}([^])*vuln-code-snippet end.*${challengeKey}`)
+  const snippets = source.match(new RegExp(`[/#]{0,2} vuln-code-snippet start.*${challengeKey}([^])*vuln-code-snippet end.*${challengeKey}`, 'g'))
   if (snippets == null) {
     throw new BrokenBoundary('Broken code snippet boundaries for: ' + challengeKey)
   }
@@ -72,10 +86,13 @@ function getCodingChallengeFromFileContent (source: string, challengeKey: string
   if (lines.length === 1) lines = snippet.split('\r')
   const vulnLines = []
   const neutralLines = []
+  const vulnLinePattern = new RegExp(`vuln-code-snippet vuln-line.*${challengeKey}`, 'g')
+  const neutralLinePattern = new RegExp(`vuln-code-snippet neutral-line.*${challengeKey}`, 'g')
+
   for (let i = 0; i < lines.length; i++) {
-    if (new RegExp(`vuln-code-snippet vuln-line.*${challengeKey}`).exec(lines[i]) != null) {
+    if (vulnLinePattern.exec(lines[i]) != null) {
       vulnLines.push(i + 1)
-    } else if (new RegExp(`vuln-code-snippet neutral-line.*${challengeKey}`).exec(lines[i]) != null) {
+    } else if (neutralLinePattern.exec(lines[i]) != null) {
       neutralLines.push(i + 1)
     }
   }
