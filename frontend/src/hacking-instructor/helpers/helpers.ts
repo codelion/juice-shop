@@ -21,6 +21,7 @@ export async function sleep (timeInMs: number): Promise<void> {
 export function waitForInputToHaveValue (inputSelector: string, value: string, options: any = Object.create(null)) {
   options.ignoreCase = options.ignoreCase ?? true;
   options.replacement = options.replacement ?? [];
+  Object.freeze(options);
 
   return async () => {
     const inputElement: HTMLInputElement = document.querySelector(
