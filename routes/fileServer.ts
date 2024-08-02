@@ -15,26 +15,26 @@ module.exports = function servePublicFiles () {
   return ({ params, query }: Request, res: Response, next: NextFunction) => {
     const file = params.file
 
-    if (!file.includes('/')) {
+    if (!file.includes('/') && isValidFileName(file)) {
       verify(file, res, next)
     } else {
       res.status(403)
-      next(new Error('File names cannot contain forward slashes!'))
+      next(new Error('File names cannot contain forward slashes or invalid characters!'))
     }
   }
 
   function verify (file: string, res: Response, next: NextFunction) {
     if (file && (endsWithAllowlistedFileType(file) || (file === 'incident-support.kdbx'))) {
-      file = security.cutOffPoisonNullByte(file)
+      const sanitizedFile = path.basename(security.cutOffPoisonNullByte(file))
 
-      const resolvedPath = path.resolve('ftp/', file)
+      const resolvedPath = path.resolve('ftp/', sanitizedFile)
       if (!resolvedPath.startsWith(path.resolve('ftp/'))) {
         res.status(403)
         return next(new Error('Path traversal attempt detected!'))
       }
 
-      challengeUtils.solveIf(challenges.directoryListingChallenge, () => { return file.toLowerCase() === 'acquisitions.md' })
-      verifySuccessfulPoisonNullByteExploit(file)
+      challengeUtils.solveIf(challenges.directoryListingChallenge, () => { return sanitizedFile.toLowerCase() === 'acquisitions.md' })
+      verifySuccessfulPoisonNullByteExploit(sanitizedFile)
 
       res.sendFile(resolvedPath)
     } else {
@@ -58,5 +58,9 @@ module.exports = function servePublicFiles () {
   function endsWithAllowlistedFileType (param: string) {
     return utils.endsWith(param, '.md') || utils.endsWith(param, '.pdf')
   }
-}
 
+  function isValidFileName(fileName: string) {
+    const invalidCharacters = /[<>:"\/\\|?*\x00-\x1F]/;
+    return !invalidCharacters.test(fileName) && fileName.length > 0;
+  }
+}

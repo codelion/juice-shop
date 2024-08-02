@@ -12,22 +12,23 @@ module.exports = function serveLogFiles () {
     const file = params.file
 
     if (!file.includes('/')) {
-      const filePath = path.resolve('logs', file)
+      const filePath = path.join('logs', file)
       const logsDir = path.resolve('logs')
 
-      if (filePath.startsWith(logsDir)) {
-        fs.access(filePath, fs.constants.F_OK, (err) => {
-          if (err) {
-            res.status(404)
-            next(new Error('File not found'))
+      fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+          res.status(404)
+          next(new Error('File not found'))
+        } else {
+          const normalizedFilePath = path.resolve(filePath)
+          if (normalizedFilePath.startsWith(logsDir)) {
+            res.sendFile(normalizedFilePath)
           } else {
-            res.sendFile(filePath)
+            res.status(403)
+            next(new Error('Invalid file path'))
           }
-        })
-      } else {
-        res.status(403)
-        next(new Error('Invalid file path'))
-      }
+        }
+      })
     } else {
       res.status(403)
       next(new Error('File names cannot contain forward slashes!'))

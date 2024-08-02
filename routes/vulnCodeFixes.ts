@@ -28,8 +28,8 @@ export const readFixes = (key: string) => {
   const fixes: string[] = []
   let correct: number = -1
   for (const file of files) {
-    if (file.startsWith(`${key}_`)) {
-      const fix = fs.readFileSync(path.join(FixesDir, file)).toString()
+    if (file.startsWith(`${key}_`) && /^[a-zA-Z0-9-_]+$/.test(file)) {
+      const fix = fs.readFileSync(path.join(FixesDir, path.basename(file))).toString()
       const metadata = file.split('_')
       const number = metadata[1]
       fixes.push(fix)
@@ -87,8 +87,8 @@ export const checkCorrectFix = () => async (req: Request<Record<string, unknown>
       })
     } else {
       let explanation
-      if (fs.existsSync(path.join(FixesDir, key + '.info.yml'))) {
-        const codingChallengeInfos = yaml.load(fs.readFileSync(path.join(FixesDir, key + '.info.yml'), 'utf8'))
+      if (fs.existsSync(path.join(FixesDir, path.basename(key + '.info.yml')))) {
+        const codingChallengeInfos = yaml.load(fs.readFileSync(path.join(FixesDir, path.basename(key + '.info.yml')), 'utf8'))
         const selectedFixInfo = codingChallengeInfos?.fixes.find(({ id }: { id: number }) => id === selectedFix + 1)
         if (selectedFixInfo?.explanation) explanation = res.__(selectedFixInfo.explanation)
       }

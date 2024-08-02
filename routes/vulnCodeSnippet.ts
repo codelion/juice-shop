@@ -96,7 +96,7 @@ exports.checkVulnLines = () => async (req: Request<Record<string, unknown>, Reco
   let hint;
 
   const sanitizedKey = path.basename(key); // sanitize key to prevent path traversal
-  const filePath = path.join(__dirname, './data/static/codefixes/' + sanitizedKey + '.info.yml');
+  const filePath = path.join(__dirname, './data/static/codefixes/', sanitizedKey + '.info.yml'); // Ensure the file path is correctly nested
 
   if (fs.existsSync(filePath)) {
     const codingChallengeInfos = yaml.load(fs.readFileSync(filePath, 'utf8'));
