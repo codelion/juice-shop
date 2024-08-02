@@ -26,17 +26,22 @@ import { WalletModelInit } from './wallet'
 import { Sequelize, Transaction } from 'sequelize'
 
 /* jslint node: true */
-const sequelize = new Sequelize('database', 'username', 'password', {
-  dialect: 'sqlite',
-  retry: {
-    match: [/SQLITE_BUSY/],
-    name: 'query',
-    max: 5
-  },
-  transactionType: Transaction.TYPES.IMMEDIATE,
-  storage: 'data/juiceshop.sqlite',
-  logging: false
-})
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    dialect: 'sqlite',
+    retry: {
+      match: [/SQLITE_BUSY/],
+      name: 'query',
+      max: 5
+    },
+    transactionType: Transaction.TYPES.IMMEDIATE,
+    storage: 'data/juiceshop.sqlite',
+    logging: false
+  }
+)
 AddressModelInit(sequelize)
 BasketModelInit(sequelize)
 BasketItemModelInit(sequelize)
@@ -60,3 +65,4 @@ WalletModelInit(sequelize)
 relationsInit(sequelize)
 
 export { sequelize }
+
