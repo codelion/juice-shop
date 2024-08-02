@@ -114,16 +114,22 @@ export const checkIfPortIsAvailable = async (port: number | string) => {
   })
 }
 
-export const checkIfRequiredFileExists = async (pathRelativeToProjectRoot: string) => {
-  const fileName = pathRelativeToProjectRoot.substr(pathRelativeToProjectRoot.lastIndexOf('/') + 1)
+import path from 'path';
+import { access } from 'fs/promises';
+import logger from './logger'; // Assuming logger is imported from a logger module
+import colors from 'colors'; // Assuming colors is imported correctly
+
+export const checkIfRequiredFileExists = async (unsafePathRelativeToProjectRoot: string) => {
+  const pathRelativeToProjectRoot = path.normalize(unsafePathRelativeToProjectRoot).replace(/^(\.\.[\/\\])+/, '');
+  const fileName = pathRelativeToProjectRoot.substr(pathRelativeToProjectRoot.lastIndexOf('/') + 1);
 
   return await access(path.resolve(pathRelativeToProjectRoot)).then(() => {
-    logger.info(`Required file ${colors.bold(fileName)} is present (${colors.green('OK')})`)
-    return true
+    logger.info(`Required file ${colors.bold(fileName)} is present (${colors.green('OK')})`);
+    return true;
   }).catch(() => {
-    logger.warn(`Required file ${colors.bold(fileName)} is missing (${colors.red('NOT OK')})`)
-    return false
-  })
+    logger.warn(`Required file ${colors.bold(fileName)} is missing (${colors.red('NOT OK')})`);
+    return false;
+  });
 }
 
 export default validatePreconditions
