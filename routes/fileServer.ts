@@ -27,10 +27,16 @@ module.exports = function servePublicFiles () {
     if (file && (endsWithAllowlistedFileType(file) || (file === 'incident-support.kdbx'))) {
       file = security.cutOffPoisonNullByte(file)
 
+      const resolvedPath = path.resolve('ftp/', file)
+      if (!resolvedPath.startsWith(path.resolve('ftp/'))) {
+        res.status(403)
+        return next(new Error('Path traversal attempt detected!'))
+      }
+
       challengeUtils.solveIf(challenges.directoryListingChallenge, () => { return file.toLowerCase() === 'acquisitions.md' })
       verifySuccessfulPoisonNullByteExploit(file)
 
-      res.sendFile(path.resolve('ftp/', file))
+      res.sendFile(resolvedPath)
     } else {
       res.status(403)
       next(new Error('Only .md and .pdf files are allowed!'))
@@ -53,3 +59,4 @@ module.exports = function servePublicFiles () {
     return utils.endsWith(param, '.md') || utils.endsWith(param, '.pdf')
   }
 }
+
