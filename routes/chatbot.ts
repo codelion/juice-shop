@@ -155,6 +155,8 @@ async function setUserName (user: User, req: Request, res: Response) {
   }
 }
 
+import DOMPurify from 'dompurify';
+
 export const status = function status () {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (bot == null) {
@@ -181,7 +183,7 @@ export const status = function status () {
       return
     }
 
-    const username = user.username
+    const username = DOMPurify.sanitize(user.username)
 
     if (!username) {
       res.status(200).json({
