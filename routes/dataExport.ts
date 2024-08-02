@@ -11,6 +11,7 @@ import { challenges } from '../data/datacache'
 
 import challengeUtils = require('../lib/challengeUtils')
 const security = require('../lib/insecurity')
+const sanitize = require('mongo-sanitize')
 
 module.exports = function dataExport () {
   return async (req: Request, res: Response, next: NextFunction) => {
@@ -50,7 +51,8 @@ module.exports = function dataExport () {
         memories: []
       }
 
-      const memories = await MemoryModel.findAll({ where: { UserId: req.body.UserId } })
+      const sanitizedUserId = sanitize(req.body.UserId)
+      const memories = await MemoryModel.findAll({ where: { UserId: sanitizedUserId } })
       memories.forEach((memory: MemoryModel) => {
         userData.memories.push({
           imageUrl: req.protocol + '://' + req.get('host') + '/' + memory.imagePath,
