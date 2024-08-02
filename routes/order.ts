@@ -42,7 +42,9 @@ module.exports = function placeOrder () {
           const pdfFile = `order_${orderId}.pdf`
           const doc = new PDFDocument()
           const date = new Date().toJSON().slice(0, 10)
-          const fileWriter = doc.pipe(fs.createWriteStream(path.join('ftp/', pdfFile)))
+          const sanitize = require('sanitize-filename');
+          const sanitizedPdfFile = sanitize(pdfFile);
+          const fileWriter = doc.pipe(fs.createWriteStream(path.join('ftp/', sanitizedPdfFile)));
 
           fileWriter.on('finish', async () => {
             void basket.update({ coupon: null })
