@@ -44,8 +44,15 @@ module.exports = function profileImageUrlUpload () {
             if (res.statusCode === 200) {
               const ext = ['jpg', 'jpeg', 'png', 'svg', 'gif'].includes(url.pathname.split('.').slice(-1)[0].toLowerCase()) ? url.pathname.split('.').slice(-1)[0].toLowerCase() : 'jpg'
               const sanitizedFileName = `${loggedInUser.data.id}.${ext}`.replace(/[^a-z0-9.]/gi, '_')
-              imageRequest.pipe(fs.createWriteStream(`frontend/dist/frontend/assets/public/images/uploads/${sanitizedFileName}`))
-              UserModel.findByPk(loggedInUser.data.id).then(async (user: UserModel | null) => { return await user?.update({ profileImage: `/assets/public/images/uploads/${sanitizedFileName}` }) }).catch((error: Error) => { next(error) })
+
+              // Ensure directory exists
+              const uploadDir = 'frontend/dist/frontend/assets/public/images/uploads/';
+              if (!fs.existsSync(uploadDir)){
+                fs.mkdirSync(uploadDir, { recursive: true });
+              }
+              const safeFilePath = uploadDir + sanitizedFileName.replace(/(\.\.)+/g, '_');
+              imageRequest.pipe(fs.createWriteStream(safeFilePath))
+              UserModel.findByPk(loggedInUser.data.id).then(async (user: UserModel | null) => { return await user?.update({ profileImage: `/assets/public/images/uploads/${sanitizedFileName.replace(/(\.\.)+/g, '_')}` }) }).catch((error: Error) => { next(error) })
             } else UserModel.findByPk(loggedInUser.data.id).then(async (user: UserModel | null) => { return await user?.update({ profileImage: url.href }) }).catch((error: Error) => { next(error) })
           })
       } else {
