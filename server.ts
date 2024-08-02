@@ -102,7 +102,24 @@ const web3Wallet = require('./routes/web3Wallet')
 const updateProductReviews = require('./routes/updateProductReviews')
 const likeProductReviews = require('./routes/likeProductReviews')
 const security = require('./lib/insecurity')
-const app = express()
+const express = require('express');
+const csurf = require('csurf');
+const cookieParser = require('cookie-parser');
+
+const app = express();
+
+app.use(cookieParser());
+app.use(csurf({ cookie: true }));
+
+app.use((req, res, next) => {
+  res.locals.csrfToken = req.csrfToken();
+  next();
+});
+
+app.get('/', (req, res) => {
+  res.send(`CSRF token: ${res.locals.csrfToken}`);
+});
+
 const server = require('http').Server(app)
 const appConfiguration = require('./routes/appConfiguration')
 const captcha = require('./routes/captcha')
